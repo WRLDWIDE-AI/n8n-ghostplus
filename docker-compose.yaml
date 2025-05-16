@@ -1,23 +1,31 @@
-version: "3.8"
+version: '3.8'
 
 services:
   n8n:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: n8n-ghostplus:latest     # tag as you like
-    ports:
-      - "5678:5678"               # container → host mapping
-    environment:
-      # custom extension + runners
-      N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-ghostplus
-      N8N_RUNNERS_ENABLED: "true"
-      # permissions + cookies
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_SECURE_COOKIE: "false"
-      # add any additional env vars here
+    image: tks08gskggok0w0sco88g0gg:latest   # replace with your actual image tag if different
+    restart: always
+
+    # Coolify will map 80/443 → 5678 for you, so we EXPOSE not PORTS
+    expose:
+      - "5678"
+
     volumes:
-      - n8n_data:/home/node/.n8n    # persistent storage
+      - n8n-data:/home/node/.n8n
+
+    environment:
+      # custom Ghost+ node
+      N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-ghostplus
+      # enable separate runners
+      N8N_RUNNERS_ENABLED: 'true'
+      # ensure n8n can write its settings file
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      # disable secure cookies until you have SSL set up
+      N8N_SECURE_COOKIE: 'false'
+      # — add any other env vars you need below —
+      # GHOST_ADMIN_URL: https://your-ghost-url
+      # GHOST_ADMIN_API_KEY: <yourGhostAdminApiKey>
+      # WEBHOOK_TUNNEL_URL: https://ai.wrldwide.agency/
+
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
       interval: 30s
@@ -26,5 +34,4 @@ services:
       retries: 3
 
 volumes:
-  n8n_data:
-    # data persists across redeploys
+  n8n-data:
