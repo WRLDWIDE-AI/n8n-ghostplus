@@ -1,16 +1,28 @@
-version: '3.8'
+version: '3.7'
 
 services:
   n8n:
-    image: tks08gskggok0w0sco88g0gg:0c0baa0b7ee1b65fceceff03d1dec38dd2f71015
+    image: n8nio/n8n:latest
     restart: always
-    ports:
-      - "5678:5678"
-    volumes:
-      - ~/.n8n:/home/node/.n8n
+    # tell n8n how to build URLs so it uses your domain
     environment:
-      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom/n8n-nodes-ghostplus
-      - N8N_RUNNERS_ENABLED=true
-      - N8N_HOST=0.0.0.0
+      - DB_TYPE=sqlite
+      - DB_SQLITE_VACUUM_ON_STARTUP=true
+
+      - N8N_PROTOCOL=https
+      - N8N_HOST=ai.wrldwide.agency
       - N8N_PORT=5678
-      - NODE_ENV=production
+
+      - N8N_EDITOR_BASE_URL=https://ai.wrldwide.agency/   # UI links
+      - N8N_PUBLIC_API_BASE_URL=https://ai.wrldwide.agency/ # API/webhook URLs
+
+      # (optional) Lock down with basic auth
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=youruser
+      - N8N_BASIC_AUTH_PASSWORD=yourpass
+
+    ports:
+      - "5678:5678"    # Coolify will proxy 80/443 → 5678
+
+    volumes:
+      - ./n8n-data:/home/node/.n8n   # persist DB, credentials, workflow data
