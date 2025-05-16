@@ -1,66 +1,59 @@
+### Dockerfile: n8n-ghostplus with Ghost Plus node and healthcheck
+```dockerfile
+# syntax=docker/dockerfile:1
+
+# 1) Builder stage: build the Ghost Plus extension
 FROM n8nio/n8n:1.92.2 AS builder
 
-# Switch to root user for installation tasks
 USER root
+RUN apk add --no-cache curl git \
+  && rm -f /usr/local/bin/pnpx /usr/local/bin/pnpm \
+  && npm install -g pnpm
 
-# Install necessary build tools
-RUN apk add --no-cache curl git
-
-# Safely install pnpm
-RUN rm -f /usr/local/bin/pnpx /usr/local/bin/pnpm && npm install -g pnpm
-
-# Install Ghost Plus node
 WORKDIR /tmp/build
-# Use the correct Ghost Plus repository
 RUN git clone https://github.com/VladoPortos/N8N-ghost-plus.git . \
     && pnpm install \
     && pnpm build
 
-# Final image
+# 2) Final image: n8n with the custom Ghost Plus node
 FROM n8nio/n8n:1.92.2
 
-# Switch to root for package installation
+# Install curl for healthcheck
 USER root
-
-# Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy built extension from builder stage
+# Copy built extension and link it
 COPY --from=builder /tmp/build/dist /usr/local/lib/node_modules/n8n-nodes-ghostplus
 RUN npm link /usr/local/lib/node_modules/n8n-nodes-ghostplus
 
-# Add healthcheck script
-RUN echo '#!/bin/sh\n\
-max_retries=30\n\
-retry_interval=1\n\
-retry_count=0\n\
-\n\
-while [ $retry_count -lt $max_retries ]; do\n\
-  response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5678/healthz || echo "000")\n\
-  \n\
-  if [ "$response" = "200" ]; then\n\
-    exit 0\n\
-  fi\n\
-  \n\
-  echo "Health check attempt $retry_count failed with status $response, retrying in ${retry_interval}s..."\n\
-  sleep $retry_interval\n\
-  retry_count=$((retry_count + 1))\n\
-  retry_interval=$((retry_interval + 1))\n\
-done\n\
-\n\
-echo "Health check failed after $max_retries attempts"\n\
-exit 1' > /healthcheck.sh && chmod +x /healthcheck.sh
+# Enable task runners to avoid deprecation issues
+ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n-nodes-ghostplus \
+    N8N_RUNNERS_ENABLED=true
 
-# Configure n8n to use the custom node
-ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n-nodes-ghostplus
+# Embed healthcheck script
+RUN echo "#!/bin/sh
+max_retries=30
+retry_interval=2
+retry_count=0
 
-# Switch back to node user for security
+while [ $retry_count -lt $max_retries ]; do
+  status=
+  status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5678/healthz || echo 000)
+  if [ \"$status\" = "200" ]; then
+    exit 0
+  fi
+  echo "healthcheck attempt $retry_count failed: $status"
+  sleep $retry_interval
+  retry_count=$((retry_count + 1))
+  retry_interval=$((retry_interval + 1))
+done
+
+echo "healthcheck failed after $max_retries attempts"
+exit 1" > /healthcheck.sh \
+  && chmod +x /healthcheck.sh
+
+# Switch back to non-root
 USER node
 
-# Define the health check with generous parameters
-HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
-RUN apk add --no-cache curl
-COPY healthcheck.sh /healthcheck.sh
-RUN chmod +x /healthcheck.sh
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD /healthcheck.sh
-  CMD /healthcheck.sh
+# Define the container healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 CMD ["/healthcheck.sh"]
