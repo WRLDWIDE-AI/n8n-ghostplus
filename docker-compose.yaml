@@ -5,9 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: n8n-ghostplus:latest       # you can tag it whatever you like
+    image: n8n-ghostplus:latest     # tag as you like
     ports:
-      - "5678:5678"                   # maps container 5678 → host 5678
+      - "5678:5678"               # container → host mapping
     environment:
       # custom extension + runners
       N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-ghostplus
@@ -15,9 +15,9 @@ services:
       # permissions + cookies
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
       N8N_SECURE_COOKIE: "false"
-      # any other envs you need go here…
+      # add any additional env vars here
     volumes:
-      - n8n_data:/home/node/.n8n    # persistent data
+      - n8n_data:/home/node/.n8n    # persistent storage
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
       interval: 30s
@@ -27,3 +27,4 @@ services:
 
 volumes:
   n8n_data:
+    # data persists across redeploys
