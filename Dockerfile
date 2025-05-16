@@ -1,5 +1,3 @@
-### Dockerfile: n8n-ghostplus with Ghost Plus node and healthcheck
-```dockerfile
 # syntax=docker/dockerfile:1
 
 # 1) Builder stage: build the Ghost Plus extension
@@ -18,7 +16,6 @@ RUN git clone https://github.com/VladoPortos/N8N-ghost-plus.git . \
 # 2) Final image: n8n with the custom Ghost Plus node
 FROM n8nio/n8n:1.92.2
 
-# Install curl for healthcheck
 USER root
 RUN apk add --no-cache curl
 
@@ -26,20 +23,20 @@ RUN apk add --no-cache curl
 COPY --from=builder /tmp/build/dist /usr/local/lib/node_modules/n8n-nodes-ghostplus
 RUN npm link /usr/local/lib/node_modules/n8n-nodes-ghostplus
 
-# Enable task runners to avoid deprecation issues
-ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n-nodes-ghostplus \
+# Enable custom extension and task runners
+env N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n-nodes-ghostplus \
     N8N_RUNNERS_ENABLED=true
 
-# Embed healthcheck script
-RUN echo "#!/bin/sh
+# Create healthcheck script
+RUN cat << 'EOF' > /healthcheck.sh
+#!/bin/sh
 max_retries=30
 retry_interval=2
 retry_count=0
 
 while [ $retry_count -lt $max_retries ]; do
-  status=
-  status=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5678/healthz || echo 000)
-  if [ \"$status\" = "200" ]; then
+  status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5678/healthz || echo "000")
+  if [ "$status" = "200" ]; then
     exit 0
   fi
   echo "healthcheck attempt $retry_count failed: $status"
@@ -49,11 +46,12 @@ while [ $retry_count -lt $max_retries ]; do
 done
 
 echo "healthcheck failed after $max_retries attempts"
-exit 1" > /healthcheck.sh \
-  && chmod +x /healthcheck.sh
+exit 1
+EOF
+
+RUN chmod +x /healthcheck.sh
 
 # Switch back to non-root
 USER node
 
-# Define the container healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 CMD ["/healthcheck.sh"]
+# Define container healthcheck\ nhealthcheck --interval=30s --timeout=5s --start-period=120s --retries=3 CMD ["/healthcheck.sh"]
