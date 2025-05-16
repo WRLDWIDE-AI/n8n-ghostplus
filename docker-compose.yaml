@@ -1,23 +1,27 @@
-version: "3.8"
+version: '3.8'
 
 services:
   n8n:
-    image: n8nio/n8n:1.92.2
-    user: root
-    ports:
-      - "5678:5678"         # map host→container so Coolify’s proxy can route 80/443→5678
+    # you can switch this to `image: your-image:tag` if you build elsewhere
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
-      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom/n8n-nodes-ghostplus
-      - N8N_RUNNERS_ENABLED=true
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - N8N_SECURE_COOKIE=false
-      - N8N_HOST=0.0.0.0
-      - N8N_PORT=5678
+      # custom n8n + ghost-plus settings
+      N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-ghostplus
+      N8N_RUNNERS_ENABLED: "true"
+      # add any other N8N_ or GHOST_ env vars here
     volumes:
-      - ./custom:/home/node/.n8n/custom      # your built ghost‐plus node lives here
+      - n8n_data:/home/node/.n8n
+    # notice: no "ports:" mapping, just expose
+    expose:
+      - "5678"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5678/ || exit 1"]
+      test: ["CMD-SHELL", "/healthcheck.sh"]
       interval: 30s
       timeout: 5s
-      retries: 3
       start_period: 120s
+      retries: 3
+
+volumes:
+  n8n_data:
