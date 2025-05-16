@@ -1,4 +1,7 @@
-FROM n8nio/n8n:1.92.2 as builder
+FROM n8nio/n8n:1.92.2 AS builder
+
+# Switch to root user for installation tasks
+USER root
 
 # Install necessary build tools
 RUN apk add --no-cache curl git
@@ -15,6 +18,9 @@ RUN git clone https://github.com/n8n-nodes-ghostplus.git . \
 # Final image
 FROM n8nio/n8n:1.92.2
 
+# Switch to root for package installation
+USER root
+
 # Install curl for health checks
 RUN apk add --no-cache curl
 
@@ -22,11 +28,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /tmp/build/dist /usr/local/lib/node_modules/n8n-nodes-ghostplus
 RUN npm link /usr/local/lib/node_modules/n8n-nodes-ghostplus
 
-# Configure n8n to use the custom node
-ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n-nodes-ghostplus
-
 # Add healthcheck script
-USER root
 RUN echo '#!/bin/sh\n\
 max_retries=30\n\
 retry_interval=1\n\
@@ -48,7 +50,10 @@ done\n\
 echo "Health check failed after $max_retries attempts"\n\
 exit 1' > /healthcheck.sh && chmod +x /healthcheck.sh
 
-# Switch back to node user
+# Configure n8n to use the custom node
+ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n-nodes-ghostplus
+
+# Switch back to node user for security
 USER node
 
 # Define the health check with generous parameters
