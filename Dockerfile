@@ -59,4 +59,8 @@ USER node
 
 # Define the health check with generous parameters
 HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
+RUN apk add --no-cache curl
+COPY healthcheck.sh /healthcheck.sh
+RUN chmod +x /healthcheck.sh
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s CMD /healthcheck.sh
   CMD /healthcheck.sh
