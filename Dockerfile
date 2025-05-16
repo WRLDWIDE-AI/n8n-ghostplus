@@ -11,7 +11,8 @@ RUN rm -f /usr/local/bin/pnpx /usr/local/bin/pnpm && npm install -g pnpm
 
 # Install Ghost Plus node
 WORKDIR /tmp/build
-RUN git clone https://github.com/n8n-nodes-ghostplus.git . \
+# Use the correct Ghost Plus repository
+RUN git clone https://github.com/VladoPortos/N8N-ghost-plus.git . \
     && pnpm install \
     && pnpm build
 
