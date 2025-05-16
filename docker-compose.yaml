@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: n8nio/n8n:1.92.2
+    user: root
+    ports:
+      - "5678:5678"         # map host→container so Coolify’s proxy can route 80/443→5678
+    environment:
+      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom/n8n-nodes-ghostplus
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_SECURE_COOKIE=false
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+    volumes:
+      - ./custom:/home/node/.n8n/custom      # your built ghost‐plus node lives here
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5678/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
