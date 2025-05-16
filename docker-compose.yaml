@@ -1,23 +1,25 @@
-version: '3.8'
+version: "3.8"
 
 services:
   n8n:
-    # you can switch this to `image: your-image:tag` if you build elsewhere
     build:
       context: .
       dockerfile: Dockerfile
+    image: n8n-ghostplus:latest       # you can tag it whatever you like
+    ports:
+      - "5678:5678"                   # maps container 5678 → host 5678
     environment:
-      # custom n8n + ghost-plus settings
+      # custom extension + runners
       N8N_CUSTOM_EXTENSIONS: /home/node/.n8n/custom/n8n-nodes-ghostplus
       N8N_RUNNERS_ENABLED: "true"
-      # add any other N8N_ or GHOST_ env vars here
+      # permissions + cookies
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_SECURE_COOKIE: "false"
+      # any other envs you need go here…
     volumes:
-      - n8n_data:/home/node/.n8n
-    # notice: no "ports:" mapping, just expose
-    expose:
-      - "5678"
+      - n8n_data:/home/node/.n8n    # persistent data
     healthcheck:
-      test: ["CMD-SHELL", "/healthcheck.sh"]
+      test: ["CMD", "/healthcheck.sh"]
       interval: 30s
       timeout: 5s
       start_period: 120s
