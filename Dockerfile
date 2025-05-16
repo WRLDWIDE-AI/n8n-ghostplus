@@ -5,7 +5,8 @@ FROM n8nio/n8n:1.92.2 AS builder
 
 USER root
 RUN apk add --no-cache curl git \
- && npm install -g pnpm
+  && rm -f /usr/local/bin/pnpx /usr/local/bin/pnpm \
+  && npm install -g pnpm
 
 WORKDIR /tmp/ghostplus
 RUN git clone https://github.com/VladoPortos/N8N-ghost-plus.git . \
