@@ -3,7 +3,7 @@ FROM n8nio/n8n:1.92.2
 USER root
 
 # Install curl for Coolify health checks
-RUN apt-get update && apt-get install -y curl
+RUN apk add --no-cache curl
 
 # Install pnpm globally (in case it’s missing)
 RUN npm install -g pnpm
