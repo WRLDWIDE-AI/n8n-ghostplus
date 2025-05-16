@@ -38,3 +38,7 @@ USER node
 
 # Define container healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 CMD ["/healthcheck.sh"]
+# … your existing final-stage bits …
+
+# make sure Coolify sees port 5678
+EXPOSE 5678
